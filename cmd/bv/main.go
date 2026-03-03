@@ -51,6 +51,7 @@ import (
 
 func main() {
 	cpuProfile := flag.String("cpu-profile", "", "Write CPU profile to file")
+	dbPath := flag.String("db", "", "Path to beads database file or .beads directory (overrides BEADS_DB and BEADS_DIR env vars)")
 	help := flag.Bool("help", false, "Show help")
 	versionFlag := flag.Bool("version", false, "Show version")
 	// Update flags (bv-182)
@@ -233,6 +234,17 @@ func main() {
 			os.Exit(1)
 		}
 		defer pprof.StopCPUProfile()
+	}
+
+	// Apply --db flag: set BEADS_DB env var so all downstream code respects it.
+	// Priority: --db flag > BEADS_DB env > BEADS_DIR env > auto-discovery.
+	if *dbPath != "" {
+		absDB, err := filepath.Abs(*dbPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error resolving --db path: %v\n", err)
+			os.Exit(1)
+		}
+		os.Setenv(loader.BeadsDBEnvVar, absDB)
 	}
 
 	// Ensure static export flags are retained even when build tags strip features in some environments.
@@ -782,6 +794,20 @@ func main() {
 		fmt.Println("")
 		fmt.Println("      --pages-include-closed=false")
 		fmt.Println("          Exclude closed issues from export (default: include all)")
+		fmt.Println("")
+		fmt.Println("  Database Path Configuration:")
+		fmt.Println("      --db <path>")
+		fmt.Println("          Specify path to beads database file or .beads directory.")
+		fmt.Println("          Accepts a .beads/ directory, a beads.jsonl file, or a beads.db file.")
+		fmt.Println("          Overrides all environment variables.")
+		fmt.Println("          Example: bv --db /path/to/repo/.beads --robot-triage")
+		fmt.Println("          Example: bv --db /path/to/.beads/beads.jsonl --robot-next")
+		fmt.Println("")
+		fmt.Println("      Environment variables (in priority order):")
+		fmt.Println("        BEADS_DB   - Path to beads database file or .beads directory")
+		fmt.Println("        BEADS_DIR  - Path to .beads directory (existing, lower priority)")
+		fmt.Println("")
+		fmt.Println("      Resolution priority: --db flag > BEADS_DB env > BEADS_DIR env > auto-discovery")
 		fmt.Println("")
 		fmt.Println("  Drift Detection Configuration (.bv/drift.yaml)")
 		fmt.Println("      Customize drift detection thresholds:")
@@ -7756,6 +7782,8 @@ func generateRobotDocs(topic string) map[string]interface{} {
 	}
 
 	envVars := map[string]string{
+		"BEADS_DB":            "Path to beads database file or .beads directory (overrides BEADS_DIR; overridden by --db flag)",
+		"BEADS_DIR":           "Path to .beads directory (fallback when BEADS_DB and --db are not set)",
 		"BV_OUTPUT_FORMAT":    "Default output format: json or toon (overridden by --format)",
 		"TOON_DEFAULT_FORMAT": "Fallback format if BV_OUTPUT_FORMAT not set",
 		"TOON_STATS":          "Set to 1 to show JSON vs TOON token estimates on stderr",

@@ -85,10 +85,14 @@ func DiscoverSources(opts DiscoveryOptions) ([]DataSource, error) {
 	}
 
 	// Determine beads directory
+	// Priority: opts.BeadsDir (set by caller, e.g. from --db) > BEADS_DB env > BEADS_DIR env > auto-discovery
 	beadsDir := opts.BeadsDir
 	if beadsDir == "" {
-		// Check BEADS_DIR environment variable
-		if envDir := os.Getenv("BEADS_DIR"); envDir != "" {
+		// Check BEADS_DB environment variable (can be file or directory)
+		if envDB := os.Getenv("BEADS_DB"); envDB != "" {
+			beadsDir = resolveBeadsDBPath(envDB)
+		} else if envDir := os.Getenv("BEADS_DIR"); envDir != "" {
+			// Check BEADS_DIR environment variable
 			beadsDir = envDir
 		} else {
 			// Use repo path or current directory
@@ -164,6 +168,24 @@ func DiscoverSources(opts DiscoveryOptions) ([]DataSource, error) {
 	}
 
 	return sources, nil
+}
+
+// resolveBeadsDBPath interprets a BEADS_DB value which can be either a file path or directory path.
+// If it points to a file (or looks like one), returns the parent directory.
+// If it points to a directory, returns the directory itself.
+func resolveBeadsDBPath(dbPath string) string {
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		// Path doesn't exist -- guess based on extension
+		if strings.HasSuffix(dbPath, ".jsonl") || strings.HasSuffix(dbPath, ".db") {
+			return filepath.Dir(dbPath)
+		}
+		return dbPath
+	}
+	if info.IsDir() {
+		return dbPath
+	}
+	return filepath.Dir(dbPath)
 }
 
 // discoverSQLiteSources finds SQLite databases in the beads directory

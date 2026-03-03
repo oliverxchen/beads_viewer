@@ -18,17 +18,28 @@ import (
 // BeadsDirEnvVar is the name of the environment variable for custom beads directory
 const BeadsDirEnvVar = "BEADS_DIR"
 
+// BeadsDBEnvVar is the name of the environment variable for a specific database file
+// or .beads directory path. Takes priority over BEADS_DIR.
+// Can point to a specific file (e.g., /path/to/.beads/beads.jsonl) or a .beads directory.
+const BeadsDBEnvVar = "BEADS_DB"
+
 // PreferredJSONLNames defines the priority order for looking up beads data files.
 // Priority order matches bd's canonical naming (beads.jsonl) to ensure bv watches
 // the same file that bd writes to in stealth/direct mode. Fixes bv-96.
 var PreferredJSONLNames = []string{"beads.jsonl", "issues.jsonl", "beads.base.jsonl"}
 
-// GetBeadsDir returns the beads directory path, respecting BEADS_DIR env var.
-// If BEADS_DIR is set, it is used directly.
-// Otherwise, falls back to .beads in the given repoPath (or cwd if empty).
-// For git worktrees, this automatically detects and uses the main repository root.
+// GetBeadsDir returns the beads directory path, with the following priority:
+//  1. BEADS_DB env var (can point to a file or directory; if file, returns parent dir)
+//  2. BEADS_DIR env var (used directly as the .beads directory)
+//  3. .beads in the given repoPath (or cwd if empty)
+//  4. .beads in the main git repository root (for worktrees)
 func GetBeadsDir(repoPath string) (string, error) {
-	// Check BEADS_DIR environment variable first
+	// Check BEADS_DB environment variable first (highest priority after --db flag)
+	if envDB := os.Getenv(BeadsDBEnvVar); envDB != "" {
+		return resolveBeadsDB(envDB)
+	}
+
+	// Check BEADS_DIR environment variable
 	if envDir := os.Getenv(BeadsDirEnvVar); envDir != "" {
 		return envDir, nil
 	}
@@ -60,6 +71,31 @@ func GetBeadsDir(repoPath string) (string, error) {
 	// Return the original path even if .beads doesn't exist
 	// (caller will handle the error)
 	return beadsDir, nil
+}
+
+// resolveBeadsDB interprets a BEADS_DB value which can be either:
+//   - An absolute path to a specific file (e.g., /path/to/.beads/beads.jsonl or /path/to/.beads/beads.db)
+//   - An absolute path to a .beads directory
+//
+// If it points to a file, returns the parent directory.
+// If it points to a directory, returns the directory itself.
+func resolveBeadsDB(dbPath string) (string, error) {
+	info, err := os.Stat(dbPath)
+	if err != nil {
+		// Path doesn't exist yet -- guess based on whether it looks like a file path
+		if strings.HasSuffix(dbPath, ".jsonl") || strings.HasSuffix(dbPath, ".db") {
+			return filepath.Dir(dbPath), nil
+		}
+		// Assume it's a directory
+		return dbPath, nil
+	}
+
+	if info.IsDir() {
+		return dbPath, nil
+	}
+
+	// It's a file -- return the parent directory
+	return filepath.Dir(dbPath), nil
 }
 
 // getMainRepoRoot returns the root directory of the main git repository.
