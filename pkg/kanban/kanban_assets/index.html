@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kanban Board</title>
+    <!-- KANBAN_FAVICON_PLACEHOLDER -->
+    <link rel="stylesheet" href="kanban.css">
+</head>
+<body>
+    <header>
+        <h1>Kanban Board</h1>
+    </header>
+    <input type="text" id="filter-input" placeholder="Search task IDs/titles, epic titles, or epic IDs...">
+    <div class="date-filter-row">
+        <label class="date-filter-label" for="filter-date-start">Updated after</label>
+        <input type="date" id="filter-date-start" class="date-filter-input">
+        <label class="date-filter-label" for="filter-date-end">Updated before</label>
+        <input type="date" id="filter-date-end" class="date-filter-input">
+        <button id="date-filter-clear" class="date-filter-clear" title="Clear date filters">Clear date filter</button>
+        <button id="blocker-filter-clear" class="blocker-filter-clear" title="Clear blocker filter">Clear blocker filter</button>
+    </div>
+    <div id="filter-status"></div>
+    <div id="kanban-board" class="kanban-board"></div>
+    <div id="detail-overlay" class="detail-overlay hidden" tabindex="-1">
+        <div id="detail-panel" class="detail-panel">
+            <button id="detail-close" class="detail-close" title="Close">&times;</button>
+            <div id="detail-content" class="detail-content"></div>
+        </div>
+    </div>
+    <!-- KANBAN_DATA_PLACEHOLDER -->
+    <script src="vendor/marked.min.js"></script>
+    <script src="kanban.js"></script>
+</body>
+</html>
