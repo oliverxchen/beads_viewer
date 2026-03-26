@@ -647,6 +647,17 @@
             '<div class="board-error">' + escapeHTML(msg) + "</div>";
     }
 
+    function isTextInputTarget(element) {
+        if (!element) return false;
+        var tagName = element.tagName ? element.tagName.toLowerCase() : "";
+        return (
+            tagName === "input" ||
+            tagName === "textarea" ||
+            tagName === "select" ||
+            element.isContentEditable
+        );
+    }
+
     function init(data) {
         renderBoard(data);
         filterInput.addEventListener("input", applyFilter);
@@ -671,6 +682,15 @@
             if (e.target === detailOverlay) closeDetail();
         });
         document.addEventListener("keydown", function (e) {
+            if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (!isTextInputTarget(document.activeElement) && filterInput) {
+                    e.preventDefault();
+                    filterInput.focus();
+                    filterInput.select();
+                    return;
+                }
+            }
+
             if (e.key === "Escape") {
                 if (activeBlockerFilter) {
                     clearBlockerFilter();
