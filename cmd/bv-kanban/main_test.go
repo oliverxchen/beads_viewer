@@ -1,3 +1,5 @@
+//go:build !kanban_release
+
 package main
 
 import (

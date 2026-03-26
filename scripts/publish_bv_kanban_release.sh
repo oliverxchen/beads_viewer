@@ -22,9 +22,11 @@ Options:
 Build behavior:
   - Builds ./cmd/bv-kanban with a minimal configuration:
       CGO_ENABLED=0
+      -tags kanban_release
       -trimpath
       -buildvcs=false
       -ldflags "-s -w -buildid="
+  - Excludes the optional `--watch` preview mode from the release binary.
   - Defaults to GOOS=linux GOARCH=amd64.
   - Honors GOOS/GOARCH environment overrides when provided.
 
@@ -148,6 +150,7 @@ BIN_PATH="${TMP_DIR}/${ASSET_NAME}"
 
 echo "==> Building minimal bv-kanban binary (${GOOS_VALUE}/${GOARCH_VALUE})"
 CGO_ENABLED=0 GOTOOLCHAIN=auto go build \
+  -tags kanban_release \
   -trimpath \
   -buildvcs=false \
   -ldflags "-s -w -buildid=" \
